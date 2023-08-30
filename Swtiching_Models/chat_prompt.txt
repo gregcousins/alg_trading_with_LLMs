@@ -1,0 +1,132 @@
+I want to create a "buy one, sell one" algorithm that actively switches
+between two trading strategies, which we might call strategy_1 and
+strategy_2. The way the algorithm switches should be based on a
+hypothesis test.
+
+I would like to import the data as a csv file using this code:
+
+# Load historical price data from a text file
+file_path =
+"/Volumes/Financial_Data/Futures/futures-active_UNadjusted_1hour_pafnlm
+2/MET_continuous_UNadjusted_1hour.txt" column_names = ['Open', 'High',
+'Low', 'Close', 'Volume']  # Specify the column names data =
+pd.read_csv(file_path, header=None, index_col=0, parse_dates=True,
+sep=',', names=column_names)
+
+
+The data does not come with headers and so we need to create them, and
+we index the data by column 0, which are timestamps of the form
+"2006-03-24 11:00:00".
+
+I want to create four more columns in the data right at the start. The
+columns should be: 'Action', 'TradeProfit', "WinLoss", and "TotalProfit"
+
+At each time point, the algorithm should decide to buy, hold, or sell.
+This outcome should be encoded under the "Action" column with 1, 0, or
+-1, respectively. If the action is a sell (-1) then the previous actions
+should be a buy (1) followed by a sequence (possible empty) of holds
+(0). Similarly if the action is a buy (1), then the preceding actions
+should be a sell (-1) followed by a sequence (possibly empty) of holds
+(0). The algorithm should not be able to sell a share if we do not own
+one (no short selling). If we sell a share, then in the 'TradeProfit'
+column we should record the difference between the closing price in the
+current row and the closing price at the time of the last buy signal. If
+there is no sale for the current index, then the "TradeProfit" should be
+assigned 0. If the "TradeProfit" is positive, we should record a "1" in
+the "WinLoss" column and a -1  if the 'TradeProfit' is negative (i.e. a
+loss). If there is no sale, then the "WinLoss" should be assigned a 0.
+In other words, the 'WinLoss' column should be non-zero only if there is
+a sale (-1) in the 'Action' column of that row. Finally, for a given
+row, the 'TotalProfit' should be the 'TotalProfit' value of the
+preceding row plus the value of 'TradeProfit' for the current row. Note
+that if there is a hold, then the 'TotalProfit' column should remain
+unchanged from the previous row.
+
+To assign these values, the algorithm should switch between two
+different strategies. For this example, lets use a simple crossover
+strategy for strategy_1 and a bollinger band strategy for strategy_2.
+The parameters are unimportant and can be assigned a whatever you think
+are best. The current data is hourly trades. This will be a dynamic
+strategy, so we need the strategies to take in a particular row and all
+previous rows (the historical data).
+
+The key part of this code should be the switchin mechanism. Do determine
+whether or not to switch, we should apply a hypothesis test to the last
+30 sales (i.e. rows for which the 'Action' column has a value of -1). If
+the proportion of such trades which result in a positive profit (i.e.
+WinLoss >0) is significantly less that 0.5 (say with significance
+threshold of 0.05), then we should switch algorithms. The algorithm
+should be able to switch as many times as is necessary, but each
+algorithm must be able to make at least 30 sales in order for the
+algorithm to make sense.
+
+
+The output of the algorithm should be an expanded csv file with the new
+features, as well as a plot of "ProfitLoss" over time (i.e. versus the
+index). The algorithm should also compute a historical p-value across
+all trades (regardless of the strategy being employed) representing the
+probability that the algorithm is performing better than random buying
+and selling (say whether more that 50% of buy/sell pairs result in a
+profit). This p-value should be displayed on the output graph, as well
+as the total profit (or loss) at the end of the data.
+
+
+---------------------
+
+I would like to adjust this code to include more than two strategies. Let's start with three strategies for now, but I want the code to be easily adjustable to include more (one idea might be to have a list of strategy names where we can select from).  Given a list of strategies, we should have a switching mechanisms as before based on a hypothesis test on the last several sale trades (the switch_counter parameter). In this multi-strategy version, let's switch randomly to one of the other strategies (not including the current one). Randomly here can be the uniform distribution. 
+
+
+Your updated code looks quite comprehensive. Here are a few points to note and improvements:
+
+Code Organization:
+
+Consider breaking down the main loop into smaller functions. This promotes code readability, debuggability, and maintainability.
+Data Range:
+
+You've set a start_date and end_date for your data range, but you're using the entire dataset. If you plan to use the entire dataset, you can remove those lines.
+Strategy Initialization:
+
+Good use of Python's random library to start with a random strategy.
+Switching Mechanism:
+
+I noticed the logic to switch strategies when a p-value threshold is reached. This is well implemented, and the logic to ensure that the current strategy is not considered in the next random pick is correct.
+Data Columns:
+
+The columns 'Action', 'TradeProfit', 'WinLoss', 'TotalProfit', 'CurrentStrategy', and 'SwitchPValue' provide a comprehensive view of the strategies' performances.
+Data Saving:
+
+Your code saves the DataFrame to an output CSV which is helpful for analysis.
+Visualization:
+
+The plot provides a good visual representation of how your strategies are performing and the points where the strategies switch.
+Performance:
+
+You have a runtime calculator at the end, which is helpful to gauge performance, especially if you are testing optimization.
+Potential Improvements:
+Redundant Call to Current Strategy:
+
+You've called the current_strategy twice in the main loop. This redundancy can be avoided.
+Checking Empty Series:
+
+For every strategy, you're returning a series with a length equal to the input data even if the strategy doesn't have sufficient data. Instead, return a smaller series from the strategies and then handle it accordingly.
+Action Logic:
+
+The logic that prevents selling without buying and buying while owning is clear. However, you might consider making this a function if you think more rules of this nature might come into play.
+Loop Efficiency:
+
+Currently, the code goes through the loop and calculates the strategy for all the previous data points in every iteration. This is not efficient. You might want to maintain the history of the actions and update only the latest action using the strategies.
+Plotting Optimization:
+
+If your dataset becomes large, plotting every data point might not be practical. Consider plotting only a subset or summarizing the data in some manner.
+In summary, your code is comprehensive, and with a few optimizations, it would be even better. However, the next step would be to run the code and ensure that it works as expected with your data.
+
+
+
+-----------
+
+Can you change the plotting code a bit to be more interractive like you suggested with plotly or bokeh? Also can you make the plotting more efficient? The data is pretty big. 
+
+
+----
+
+
